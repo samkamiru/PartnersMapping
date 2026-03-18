@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kenya Health Partners Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+
+    #title {
+      position: absolute;
+      top: 16px;
+      left: 60px;
+      z-index: 500;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 16px;
+      border-radius: 6px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+      pointer-events: none;
+    }
+
+    #title h1 {
+      margin: 0 0 4px 0;
+      font-size: 18px;
+      color: #1a1a2e;
+    }
+
+    #title p {
+      margin: 0;
+      font-size: 12px;
+      color: #555;
+    }
+
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.85);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #333;
+    }
+
+    #error {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1100;
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px 16px;
+      box-sizing: border-box;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    #error button {
+      padding: 4px 12px;
+      background: #721c24;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    #error button:hover {
+      background: #5a1520;
+    }
+
+    .info-control {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+      font-size: 13px;
+      color: #333;
+      min-width: 120px;
+      pointer-events: none;
+    }
+
+    .info-control strong {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      margin-bottom: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading">Loading Kenya counties and partner data...</div>
+
+  <div id="error">
+    <span id="error-message"></span>
+    <button onclick="loadData()">Retry</button>
+  </div>
+
+  <div id="title">
+    <h1>Kenya Health Partners Map</h1>
+    <p>Showing health partner locations across all 47 counties</p>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Initialize map
+    const map = L.map('map').setView([0.5, 38], 6);
+
+    // CartoDB Positron base tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // ── Constants ────────────────────────────────────────────────────────────
+    const GEOJSON_URL = 'https://open.africa/dataset/a8f8b195-aafd-449b-9b1a-ab337fd9925f/resource/4fb2e27e-c001-4b7f-b71d-4fee4a96a0f8/download/kenyan-counties.geojson';
+
+    // ── County styles ────────────────────────────────────────────────────────
+    const countyStyle = {
+      fillColor:   '#F0F0F0',
+      fillOpacity: 0.3,
+      color:       '#666666',
+      weight:      1,
+      opacity:     1.0
+    };
+
+    const hoverStyle = {
+      fillColor:   '#BDD7EE',
+      fillOpacity: 0.6,
+      color:       '#666666',
+      weight:      2,
+      opacity:     1.0
+    };
+
+    // ── Info control (top-right county label) ────────────────────────────────
+    const infoControl = L.control({ position: 'topright' });
+
+    infoControl.onAdd = function () {
+      this._div = L.DomUtil.create('div', 'info-control');
+      this.update();
+      return this._div;
+    };
+
+    infoControl.update = function (name) {
+      this._div.innerHTML = name
+        ? `<strong>County</strong>${name}`
+        : '<strong>County</strong>Hover over a county';
+    };
+
+    infoControl.addTo(map);
+
+    // ── Helper: resolve county name property from a GeoJSON feature ──────────
+    function getCountyName(feature) {
+      const p = feature.properties;
+      return p.COUNTY || p.COUNTY_NAM || p.name || p.NAME || p.NAME_1 || p.shapeName || null;
+    }
+
+    // ── Render county boundaries ─────────────────────────────────────────────
+    function renderCounties(geojsonData) {
+      L.geoJSON(geojsonData, {
+        style: countyStyle,
+        onEachFeature: function (feature, layer) {
+          const name = getCountyName(feature);
+          if (!name) {
+            console.warn('GeoJSON feature missing name property', feature.properties);
+          }
+
+          layer.on('mouseover', function () {
+            layer.setStyle(hoverStyle);
+            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+              layer.bringToFront();
+            }
+            infoControl.update(name || '—');
+          });
+
+          layer.on('mouseout', function () {
+            layer.setStyle(countyStyle);
+            infoControl.update();
+          });
+        }
+      }).addTo(map);
+    }
+
+    // ── UI helpers ───────────────────────────────────────────────────────────
+    function showLoading() {
+      document.getElementById('loading').style.display = 'flex';
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    function showError(message) {
+      document.getElementById('error-message').textContent = message;
+      document.getElementById('error').style.display = 'flex';
+    }
+
+    function hideError() {
+      document.getElementById('error').style.display = 'none';
+    }
+
+    // ── Data loading ─────────────────────────────────────────────────────────
+    function loadData() {
+      hideError();
+      showLoading();
+
+      fetch(GEOJSON_URL)
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (geojsonData) {
+          renderCounties(geojsonData);
+          hideLoading();
+        })
+        .catch(function (err) {
+          console.error('GeoJSON fetch failed:', err);
+          showError('Could not load county boundaries. ' + err.message);
+          hideLoading();
+        });
+    }
+
+    // ── Boot ─────────────────────────────────────────────────────────────────
+    loadData();
+  </script>
+</body>
+</html>

@@ -20,12 +20,35 @@
 | E | `Longitude` | Decimal degrees — validate as numeric, range 33 to 42 |
 | F | `Health Facilities Supported` | Display in tooltip |
 
-### CSV Fetch URL Pattern
+### Fetch Endpoint (Google Sheets JSON API — no API key required)
+
 ```
-https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Partners%20Directory
+https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:json&sheet=Partners%20Directory
 ```
 
-The sheet must be published via **File → Share → Publish to web** before the browser can fetch it without authentication.
+**Full URL for this project:**
+```
+https://docs.google.com/spreadsheets/d/17uBPv58cH3hRDRk94vzTGjZmZFrCy5S5tBbhLB2TKMY/gviz/tq?tqx=out:json&sheet=Partners%20Directory
+```
+
+**Response format:** JSON-P. The response text is wrapped in `google.visualization.Query.setResponse({...});`. Strip this wrapper before parsing:
+
+```javascript
+const jsonText = responseText
+  .replace(/^.*?google\.visualization\.Query\.setResponse\(/, '')
+  .replace(/\);?\s*$/, '');
+const data = JSON.parse(jsonText);
+const rows = data.table.rows; // Array of row objects
+```
+
+Each row object has a `c` (cells) array. Each cell has a `v` (value) property:
+- `row.c[1].v` → County Name (column B)
+- `row.c[2].v` → Partner Name (column C)
+- `row.c[3].v` → Latitude (column D)
+- `row.c[4].v` → Longitude (column E)
+- `row.c[5].v` → Health Facilities Supported (column F)
+
+**Prerequisite:** The sheet must be shared as **"Anyone with the link → Viewer"** in Google Sheets. No publishing, no API key, and no OAuth flow required.
 
 ---
 
@@ -125,16 +148,16 @@ A row is considered **invalid** and must be skipped (with a console warning) if 
 ## 5. Data Loading
 
 ### Fetch Strategy
-Load GeoJSON and CSV **in parallel** using `Promise.all()`. Render the county layer first, then markers.
+Load GeoJSON and Sheet data **in parallel** using `Promise.all()`. Render the county layer first, then markers.
 
 ```javascript
 Promise.all([
   fetch(GEOJSON_URL).then(r => r.json()),
-  fetch(CSV_URL).then(r => r.text())
+  fetch(SHEET_URL).then(r => r.text())
 ])
-.then(([geojsonData, csvText]) => {
+.then(([geojsonData, sheetText]) => {
   renderCounties(geojsonData);
-  renderMarkers(parseCSV(csvText));
+  renderMarkers(parseSheetData(sheetText));
   hideLoading();
 })
 .catch(err => {
@@ -143,11 +166,29 @@ Promise.all([
 });
 ```
 
-### CSV Parsing
-- Split text by newline (`\n`)
-- Skip rows 0–3 (header block, rows 1–4 in the sheet)
-- For each remaining row, split by comma — handle quoted fields containing commas
-- Trim whitespace from all field values
+### Sheet Data Parsing
+
+```javascript
+function parseSheetData(responseText) {
+  // Strip the JSON-P wrapper
+  const jsonText = responseText
+    .replace(/^.*?google\.visualization\.Query\.setResponse\(/, '')
+    .replace(/\);?\s*$/, '');
+  const data = JSON.parse(jsonText);
+
+  // Skip header rows (indices 0–3 correspond to sheet rows 1–4)
+  return data.table.rows
+    .slice(4)
+    .map((row, i) => ({
+      rowIndex: i + 5,
+      countyName:  row.c[1]?.v ?? '',
+      partnerName: row.c[2]?.v ?? '',
+      lat:         row.c[3]?.v,
+      lng:         row.c[4]?.v,
+      facilities:  row.c[5]?.v ?? ''
+    }));
+}
+```
 
 ### Loading Sequence
 1. Page loads → `#loading` overlay appears immediately
@@ -202,7 +243,7 @@ Promise.all([
 | Concern | Approach |
 |---------|----------|
 | Many markers | Use `L.markerClusterGroup()` if > 50 markers |
-| Parallel loading | `Promise.all()` for GeoJSON + CSV |
+| Parallel loading | `Promise.all()` for GeoJSON + Sheet data |
 | Layer order | Add GeoJSON layer before markers (correct z-order) |
 | Tooltip performance | Use `L.tooltip` (not `L.popup`) — popups trigger reflow on open |
 | GeoJSON simplification | If county boundaries load slowly, use a simplified GeoJSON (< 500 KB) |
@@ -214,9 +255,10 @@ Promise.all([
 | Error Scenario | User-Facing Behaviour | Developer Log |
 |----------------|----------------------|---------------|
 | GeoJSON fetch fails (404/network) | Red error banner: "Could not load county boundaries." + Retry button | `console.error` with full error |
-| CSV fetch fails (not published) | Red error banner: "Could not load partner data. Ensure the sheet is published." + Retry button | `console.error` with full error |
+| Sheet fetch fails (not shared / network error) | Red error banner: "Could not load partner data. Ensure the sheet is shared as 'Anyone with the link'." + Retry button | `console.error` with full error |
+| Sheet JSON-P parse fails (unexpected format) | Red error banner: "Could not parse partner data." + Retry button | `console.error` with full error |
 | Row with invalid coordinates | Row silently skipped; map continues loading | `console.warn("Row N: reason")` |
-| Empty CSV (no data rows) | Markers layer is empty; counties still render; info message shown | `console.warn("No valid partner rows found")` |
+| Empty sheet (no data rows after row 4) | Markers layer is empty; counties still render; info message shown | `console.warn("No valid partner rows found")` |
 | GeoJSON missing county name property | County renders without hover label | `console.warn("GeoJSON feature missing name property")` |
 
 ---
@@ -265,20 +307,23 @@ Follow this sequence exactly. Do not skip steps or reorder them — each step va
 
 ---
 
-### Phase 3 — CSV Fetch and Parsing
+### Phase 3 — Sheet Data Fetch and Parsing
 
-**Step 3.1 — Construct CSV URL**
-- Extract the Sheet ID from the Google Sheet URL
-- Define `const CSV_URL` using the `gviz/tq?tqx=out:csv` pattern
-- `fetch(CSV_URL)`, parse as text, log the first 10 lines to console to verify structure
+**Step 3.1 — Construct the gviz URL**
+- Define `const SHEET_URL` using the `gviz/tq?tqx=out:json` pattern with the Sheet ID and sheet name
+- `fetch(SHEET_URL)`, parse as text, log the raw response to console to inspect the JSON-P wrapper structure
 
-**Step 3.2 — Parse CSV rows**
-- Split text by `\n`, remove rows 0–3 (header block)
-- For each remaining line, split by `,` (handle quoted fields)
-- Map to objects: `{ countyName, partnerName, lat, lng, facilities }`
-- Log the count of parsed rows to confirm
+**Step 3.2 — Strip JSON-P wrapper and parse**
+- Remove the `google.visualization.Query.setResponse(` prefix and `);` suffix from the response text
+- `JSON.parse()` the inner text
+- Navigate to `data.table.rows` and log the row count to confirm
 
-**Step 3.3 — Validate rows**
+**Step 3.3 — Map rows to partner objects**
+- Slice rows from index 4 onwards (skipping the 4-row header block)
+- Map each row to `{ rowIndex, countyName, partnerName, lat, lng, facilities }` using `row.c[n].v`
+- Handle null cells with optional chaining (`row.c[n]?.v ?? ''`)
+
+**Step 3.4 — Validate rows**
 - Filter rows using the validation rules in Section 4
 - Log each skipped row to `console.warn` with row number and reason
 - Return only valid rows for marker rendering
@@ -307,8 +352,8 @@ Follow this sequence exactly. Do not skip steps or reorder them — each step va
 ### Phase 5 — Parallel Loading and Error Handling
 
 **Step 5.1 — Combine fetches with Promise.all**
-- Refactor GeoJSON and CSV fetches into named async functions: `fetchGeoJSON()` and `fetchCSV()`
-- Wrap in `Promise.all([fetchGeoJSON(), fetchCSV()])`
+- Refactor GeoJSON and Sheet fetches into named async functions: `fetchGeoJSON()` and `fetchSheetData()`
+- Wrap in `Promise.all([fetchGeoJSON(), fetchSheetData()])`
 - In `.then()`: call render functions in order (counties first, then markers)
 - In `.catch()`: display error banner with message
 
@@ -336,7 +381,7 @@ Follow this sequence exactly. Do not skip steps or reorder them — each step va
 
 **Step 6.2 — Error path testing**
 - Temporarily set `GEOJSON_URL` to an invalid URL — confirm error banner appears
-- Temporarily set `CSV_URL` to an invalid URL — confirm error banner appears
+- Temporarily set `SHEET_URL` to an invalid URL — confirm error banner appears
 - Click Retry — confirm the map attempts to reload
 
 **Step 6.3 — Data validation testing**
@@ -363,7 +408,7 @@ User opens index.html
 Loading overlay appears immediately
         │
         ▼
-Promise.all fires: fetch GeoJSON + fetch CSV (parallel)
+Promise.all fires: fetch GeoJSON + fetch Sheet data (parallel)
         │
    ┌────┴────┐
 Success      Failure

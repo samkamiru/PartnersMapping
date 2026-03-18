@@ -10,10 +10,10 @@ An interactive single-page web application that renders Kenya's 47 county bounda
 
 Build a self-contained `index.html` that:
 
-1. Fetches partner data directly from a published Google Sheet (CSV)
+1. Fetches partner data directly from the Google Sheet using the Sheets JSON API
 2. Renders all 47 Kenya county boundaries from a GeoJSON source
 3. Plots each health partner as a clickable/hoverable marker
-4. Works offline-ready after initial data load, requiring no file uploads or manual input
+4. Works with no file uploads, no CSV export, and no manual input
 
 ---
 
@@ -22,31 +22,32 @@ Build a self-contained `index.html` that:
 | Item | Value |
 |------|-------|
 | Google Sheet URL | `https://docs.google.com/spreadsheets/d/17uBPv58cH3hRDRk94vzTGjZmZFrCy5S5tBbhLB2TKMY/edit?usp=sharing` |
+| Sheet ID | `17uBPv58cH3hRDRk94vzTGjZmZFrCy5S5tBbhLB2TKMY` |
 | Sheet Name | `Partners Directory` |
 | Data starts at | Row 5 |
 | Key columns | B: County Name · C: Partner Name · D: Latitude · E: Longitude · F: Health Facilities Supported |
 
-### Publishing the Sheet as CSV (required for browser fetch)
+### Fetching Data via Google Sheets JSON API (no API key required)
 
-1. Open the Google Sheet
-2. Go to **File → Share → Publish to web**
-3. Select the `Partners Directory` sheet
-4. Choose **Comma-separated values (.csv)**
-5. Click **Publish** and copy the URL
-6. Replace the `CSV_URL` constant in `index.html` with this URL
+The sheet is fetched using the Google Visualization (`gviz`) query endpoint, which works on any sheet shared as **"Anyone with the link can view"**:
 
-> **Note:** The published CSV URL has the form:
-> `https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Partners%20Directory`
+```
+https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:json&sheet=Partners%20Directory
+```
+
+This returns a JSON-P response. Strip the `google.visualization.Query.setResponse(...)` wrapper and parse the inner JSON to access row data. No API key, no OAuth, no CSV publishing required.
+
+> **Prerequisite:** The sheet must be set to **"Anyone with the link → Viewer"** in Google Sheets sharing settings.
 
 ---
 
 ## Core Features
 
 ### 1. Automatic Data Loading
-- Fetch CSV from the published Google Sheet on page load — no user interaction required
+- Fetch partner data from the Google Sheet via the `gviz/tq?tqx=out:json` endpoint on page load — no user interaction required
 - Display a `"Loading Kenya counties and partner data..."` message while fetching
-- Show a clear, styled error banner if either the GeoJSON or CSV fetch fails
-- Parse CSV rows starting at row 5 (skip header rows 1–4)
+- Show a clear, styled error banner if either the GeoJSON or Sheet fetch fails
+- Parse rows starting at index 4 (row 5 in the sheet), skipping the 4-row header block
 
 ### 2. County Boundaries Layer (GeoJSON)
 - Source: `https://raw.githubusercontent.com/iamckn/kenya-geojson/master/kenyan-counties.geojson`
@@ -72,7 +73,7 @@ Build a self-contained `index.html` that:
 
 ### 5. Performance
 - Use Leaflet `MarkerClusterGroup` for datasets exceeding 50 markers
-- Load GeoJSON and CSV in parallel using `Promise.all()`
+- Load GeoJSON and Sheet data in parallel using `Promise.all()`
 - Render the county layer before markers to ensure correct z-order
 
 ---
@@ -117,7 +118,7 @@ cd kenya-health-partners-map
 open index.html
 ```
 
-> If fetching the CSV fails due to CORS, publish the sheet as described above and update `CSV_URL` in `index.html`.
+> Ensure the Google Sheet is shared as **"Anyone with the link → Viewer"**. No publishing or API key is needed.
 
 ---
 
@@ -145,12 +146,13 @@ Follow this order to build the project correctly. Each step depends on the previ
 - On hover, highlight the county and show its name
 - On error, show the `#error` banner and halt marker loading
 
-### Step 4 — Fetch and Parse Partner CSV
-- Construct the published CSV URL from the Sheet ID
-- `fetch()` the CSV; split into lines; skip the first 4 rows (header block)
-- Parse each remaining row: extract columns B–F
+### Step 4 — Fetch and Parse Sheet Data
+- Construct the `gviz/tq?tqx=out:json` URL using the Sheet ID and sheet name
+- `fetch()` the endpoint; strip the `google.visualization.Query.setResponse(...)` wrapper from the response text
+- Parse the inner JSON; navigate to `table.rows`; skip rows 0–3 (header block)
+- For each data row, extract columns B–F: `{ countyName, partnerName, lat, lng, facilities }`
 - Validate `Latitude` and `Longitude` — skip and log invalid rows
-- Store valid partners as an array of objects: `{ countyName, partnerName, lat, lng, facilities }`
+- Store valid partners as an array of objects
 
 ### Step 5 — Plot Partner Markers
 - Iterate over valid partner objects
@@ -159,7 +161,7 @@ Follow this order to build the project correctly. Each step depends on the previ
 - Add each marker to the map (or to a `MarkerClusterGroup` if using clustering)
 
 ### Step 6 — Parallel Loading with Promise.all
-- Wrap Steps 3 and 4 in a `Promise.all([fetchGeoJSON(), fetchCSV()])`
+- Wrap Steps 3 and 4 in a `Promise.all([fetchGeoJSON(), fetchSheetData()])`
 - On resolution, execute Steps 3 and 5 sequentially (county layer first, then markers)
 - On any rejection, display the `#error` banner with the specific failure message
 - Hide the `#loading` overlay on success or failure
