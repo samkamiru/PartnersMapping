@@ -1,0 +1,93 @@
+#,County Name,Partner Name,Latitude,Longitude,Health Facilities Supported
+1,Nairobi,Amref Health Africa,-1.2921,36.8219,42
+2,Mombasa,PATH Kenya,-4.0435,39.6682,18
+3,Kisumu,CDC Kenya,-0.1022,34.7617,31
+4,Nakuru,MSF Kenya,-0.3031,36.0800,24
+5,Uasin Gishu,Clinton Health Access Initiative,+0.5143,35.2699,19
+6,Meru,FHI 360,+0.0467,37.6491,22
+7,Kilifi,USAID Kenya,-3.5107,39.9093,27
+8,Machakos,Jhpiego,-1.5177,37.2634,16
+9,Kiambu,Management Sciences for Health,-1.0310,36.8350,35
+10,Kakamega,Intrahealth International,+0.2827,34.7519,21
+11,Bungoma,PSI Kenya,+0.5635,34.5584,14
+12,Kisii,CARE Kenya,-0.6817,34.7669,18
+13,Nyeri,Save the Children,-0.4167,36.9500,23
+14,Kwale,World Vision Kenya,-4.1740,39.4523,12
+15,Taita Taveta,IRC Kenya,-3.3167,38.3500,9
+16,Kitui,Médecins du Monde,-1.3667,38.0167,11
+17,Makueni,Partners in Health,-1.8044,37.6244,13
+18,Murang'a,International Medical Corps,-0.7167,37.1500,17
+19,Nyandarua,Concern Worldwide,-0.1833,36.3500,8
+20,Kirinyaga,EngenderHealth,-0.5619,37.2497,15
+21,Embu,WaterAid Kenya,-0.5333,37.4500,10
+22,Tharaka Nithi,Action Against Hunger,0.3000,38.1333,7
+23,Isiolo,Norwegian Refugee Council,+0.3500,37.5833,6
+24,Marsabit,Danish Refugee Council,+2.3284,37.9899,5
+25,Wajir,Mercy Corps,+1.7471,40.0573,8
+26,Mandera,World Food Programme,+3.9366,41.8670,9
+27,Garissa,UNHCR Kenya,-0.4532,39.6417,11
+28,Tana River,Oxfam Kenya,-1.5667,40.0333,6
+29,Lamu,Marie Stopes Kenya,-2.2686,40.9020,4
+30,Samburu,ACDI/VOCA,+1.0667,37.0000,5
+31,Turkana,International Rescue Committee,+3.1167,35.5958,14
+32,West Pokot,Lutheran World Federation,+1.2500,35.1167,7
+33,Trans Nzoia,Project HOPE,+1.0570,34.9510,16
+34,Nandi,RTI International,+0.1833,35.1333,13
+35,Siaya,Elizabeth Glaser Pediatric AIDS Fndn,-0.0617,34.2881,20
+36,Homa Bay,Kenya Medical Research Institute,-0.5167,34.4500,25
+37,Migori,LVCT Health,-1.0634,34.4731,19
+38,Bomet,African Medical & Research Foundation,-0.7833,35.3333,11
+39,Kericho,Aga Khan Health Services,-0.3686,35.2863,14
+40,Baringo,Abt Associates,+0.4700,35.9733,9
+41,Elgeyo Marakwet,Palladium Group,+0.6667,35.5000,7
+42,Laikipia,John Snow Inc (JSI),+0.3544,36.7820,12
+43,Narok,Pact Kenya,-1.0833,35.8667,10
+44,Kajiado,Population Services International,-1.8500,36.7833,15
+45,Busia,Partners in Hope,+0.4607,34.1112,12
+46,Nandi,Amref Flying Doctors,+0.1833,35.1333,8
+47,Kericho,Medical Care Development Intl,-0.3686,35.2863,9
+48,Kitui,Africa Inland Mission Health,-1.3667,38.0167,6
+49,Makueni,Africa Medical and Research Foundation,-1.8044,37.6244,11
+50,Murang'a,Christian Health Association of Kenya,-0.7167,37.1500,13
+51,Nyamira,ICAP at Columbia University,-0.5667,34.9333,14
+52,Kisii,University of Maryland Global Initiatives,-0.6817,34.7669,10
+53,Siaya,Impact Research & Development Org,-0.0617,34.2881,16
+54,Homa Bay,Kenya Hospices & Palliative Care Assoc,-0.5167,34.4500,8
+55,Migori,Network for Africa (NFA),-1.0634,34.4731,11
+56,Bomet,Adventist Development & Relief Agency,-0.7833,35.3333,7
+57,Baringo,Africa Development and Emergency Org,+0.4700,35.9733,5
+58,Elgeyo Marakwet,Right to Play Kenya,+0.6667,35.5000,4
+59,Laikipia,Rift Valley Medical Outreach,+0.3544,36.7820,8
+60,Narok,Maasai Mara Conservation Trust Health,-1.0833,35.8667,6
+61,Kajiado,Pastoral Communities Outreach,-1.8500,36.7833,9
+62,Vihiga,Lake Victoria Health Initiative,+0.0833,34.7167,11
+63,Bungoma,Trans-Nzoia Development Initiative,+0.5635,34.5584,10
+64,West Pokot,Turkana-Pokot Health Consortium,+1.2500,35.1167,5
+65,Trans Nzoia,Mt Elgon Regional Health Partners,+1.0570,34.9510,12
+66,Samburu,Northern Kenya Health Alliance,+1.0667,37.0000,4
+67,Turkana,Arid Lands Resource Management Project,+3.1167,35.5958,9
+68,Marsabit,Horn of Africa Development Initiative,+2.3284,37.9899,6
+69,Wajir,Islamic Relief Kenya,+1.7471,40.0573,7
+70,Mandera,Kenya Red Cross Society,+3.9366,41.8670,10
+71,Garissa,Médecins Sans Frontières,-0.4532,39.6417,13
+72,Tana River,Kenya Coast Health Network,-1.5667,40.0333,5
+73,Lamu,Coastal Kenya Health Partners,-2.2686,40.9020,3
+74,Kilifi,Coast Provincial Health Initiative,-3.5107,39.9093,15
+75,Kwale,South Coast Health Alliance,-4.1740,39.4523,9
+76,Taita Taveta,Taita Hills Community Health Network,-3.3167,38.3500,7
+77,Mombasa,Coast Health Development Partners,-4.0435,39.6682,22
+78,Isiolo,Isiolo County Health Consortium,+0.3500,37.5833,5
+79,Tharaka Nithi,Eastern Kenya Health Initiative,+0.3000,38.1333,6
+80,Kirinyaga,Central Province Medical Outreach,-0.5619,37.2497,11
+81,Meru,Eastern Highlands Health Partners,+0.0467,37.6491,14
+82,Embu,Mount Kenya Health Initiative,-0.5333,37.4500,9
+83,Nyandarua,Aberdare Ranges Health Network,-0.1833,36.3500,7
+84,Nakuru,Rift Valley Health Development Org,-0.3031,36.0800,18
+85,Uasin Gishu,North Rift Health Partners,+0.5143,35.2699,13
+86,Kakamega,Western Kenya Health Consortium,+0.2827,34.7519,16
+87,Siaya,Nyanza Health Network Alliance,-0.0617,34.2881,12
+88,Homa Bay,Lake Region Health Partners,-0.5167,34.4500,17
+89,Nyamira,Tea Region Health Initiative,-0.5667,34.9333,9
+90,Nairobi,Kenya Diabetes Management & Information Centre,-1.2921,36.8219,28
+91,Kisumu,Great Lakes University of Kisumu Health,-0.1022,34.7617,11
+
