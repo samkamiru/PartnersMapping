@@ -1,0 +1,1 @@
+# PartnersMapping
